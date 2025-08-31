@@ -1,0 +1,107 @@
+services:
+  api:
+    build:
+      context: .
+      dockerfile: docker/api/Dockerfile
+    ports:
+      - "8000:8000"
+    depends_on:
+      elastic_search:
+        condition: service_healthy
+      theatre-db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    env_file:
+      - .env
+    restart: unless-stopped
+
+  gateway:
+    build:
+      context: docker/nginx
+      dockerfile: Dockerfile
+    container_name: theatre-gateway
+    restart: always
+    volumes:
+      - static_volume:/code/static:ro
+    ports:
+      - "80:80"
+    depends_on:
+      - admin
+
+  admin:
+    build:
+      context: .
+      dockerfile: docker/admin/Dockerfile
+    container_name: admin
+    restart: always
+    ports:
+      - "8001:8001"
+    volumes:
+      - ./movies_admin:/code
+      - static_volume:/code/static
+    env_file:
+      - ./.env
+    depends_on:
+      theatre-db:
+        condition: service_healthy
+
+  etl_service:
+    build:
+      context: .
+      dockerfile: docker/etl/Dockerfile
+    env_file:
+      - ./.env
+    depends_on:
+      theatre-db:
+        condition: service_healthy
+      elastic_search:
+        condition: service_healthy
+
+  elastic_search:
+    image: elasticsearch:8.6.2
+    ports:
+      - "9200:9200"
+    expose:
+      - "9200"
+    healthcheck:
+      test: curl -s http://elastic_search:9200 >/dev/null || exit 1
+      interval: 30s
+      timeout: 10s
+      retries: 50
+    environment:
+      - discovery.type=single-node
+      - xpack.security.enabled=false
+
+  theatre-db:
+    image: postgres:15
+    ports:
+      - "5432:5432"
+    env_file:
+      - .env
+    volumes:
+      - ./database_dump.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  redis:
+    image: redis:7.0.5-alpine
+    hostname: redis
+    env_file:
+      - .env
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    restart: unless-stopped
+
+volumes:
+  content_db:
+  static_volume:
