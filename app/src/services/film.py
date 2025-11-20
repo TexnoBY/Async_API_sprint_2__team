@@ -23,7 +23,7 @@ class FilmService:
     async def get_sort_list_by_param(self, sort_field: str,
                                      sort_order: str = "asc",
                                      page: int = 0, page_size: int = 10,
-                                     genres: str = None) -> list[FilmList] | None:
+                                     genres: str | None = None) -> list[FilmList] | None:
         body = {
             "sort": [
                 {sort_field: {"order": sort_order}}

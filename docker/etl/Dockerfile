@@ -1,4 +1,4 @@
-FROM --platform=linux/amd64 python:3.12.1
+FROM python:3.10.19
 
 WORKDIR /opt/app
 
@@ -9,7 +9,7 @@ RUN apt-get update \
 COPY ./etl_service/pyproject.toml pyproject.toml
 
 RUN pip install --upgrade pip \
-     && pip install --no-cache-dir poetry==1.7.1 \
+      && pip install --no-cache-dir poetry==1.8.3 \
      && poetry config virtualenvs.create false \
      && poetry install --no-interaction --no-ansi --no-root
 

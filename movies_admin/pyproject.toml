@@ -1,0 +1,23 @@
+[tool.poetry]
+name = "movies-admin"
+version = "0.1.0"
+description = "Django admin panel for movies"
+authors = ["dfnsff <dfnsff@gmail.com>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "3.10.19"
+django = "5.0.4"
+django-debug-toolbar = "4.3.0"
+gunicorn = "22.0.0"
+psycopg = { version = "3.1.18", extras = ["binary"] }
+pydantic = "2.7.1"
+pydantic-settings = "2.3.4"
+python-dateutil = "2.9.0.post0"
+python-dotenv = "1.0.1"
+requests = "2.32.3"
+split-settings = "1.0.0"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"

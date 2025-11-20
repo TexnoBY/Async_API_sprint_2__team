@@ -57,7 +57,7 @@ async def film_details(film_id: Annotated[str, Path(description='Movie ID to dis
     }
 )
 async def film_list(sort: Annotated[str, Query(description='Field for sorting')] = '-imdb_rating',
-                    genres: Annotated[str | None, Query(description='Genre ID to search')] = None,
+                     genres: Annotated[str | None, Query(description='Genre ID to search')] = None,
                     page_size: Annotated[int, Query(description='Pagination page size', ge=1)] = 10,
                     page_number: Annotated[int, Query(description='Pagination page number', ge=0)] = 0,
                     film_service: FilmService = Depends(get_film_service)) -> list[FilmList]:

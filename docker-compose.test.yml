@@ -1,0 +1,58 @@
+services:
+  test_api:
+    build:
+      context: .
+      dockerfile: docker/api/Dockerfile
+    depends_on:
+      test_elastic_search:
+        condition: service_healthy
+      test_theatre_db:
+        condition: service_healthy
+      test_redis:
+        condition: service_healthy
+    env_file:
+      - .env
+    environment:
+      - ELASTIC_HOST=test_elastic_search
+      - REDIS_HOST=test_redis
+      - POSTGRES_HOST=test_theatre_db
+    entrypoint: ["sh", "-c"]
+    command: >
+      poetry install --with dev --no-interaction --no-ansi &&
+      pytest tests/ -v
+
+  test_elastic_search:
+    image: elasticsearch:8.6.2
+    expose:
+      - "9200"
+    healthcheck:
+      test: curl -s http://test_elastic_search:9200 >/dev/null || exit 1
+      interval: 30s
+      timeout: 10s
+      retries: 50
+    environment:
+      - discovery.type=single-node
+      - xpack.security.enabled=false
+
+  test_theatre_db:
+    image: postgres:15
+    env_file:
+      - .env
+    volumes:
+      - ./database_dump.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  test_redis:
+    image: redis:7.0.5-alpine
+    hostname: test_redis
+    env_file:
+      - .env
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5

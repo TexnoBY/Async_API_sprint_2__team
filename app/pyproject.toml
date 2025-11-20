@@ -6,11 +6,19 @@ authors = ["dfnsff <dfnsff@gmail.com>"]
 readme = "README.md"
 
 [tool.poetry.dependencies]
-python = "3.12.1"
+python = "3.10.19"
 fastapi = '0.111.0'
 elasticsearch = { version = "8.13.2", extras = ["async"] }
 redis = '5.0.4'
 pydantic-settings = '2.10.1'
+
+[tool.poetry.group.dev.dependencies]
+pytest = "^7.4.3"
+httpx = "^0.25.2"
+pytest-asyncio = "^0.21.1"
+
+[tool.poetry.scripts]
+test = "pytest"
 
 [build-system]
 requires = ["poetry-core"]
