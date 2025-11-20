@@ -7,6 +7,8 @@ from pydantic import Field
 from redis.asyncio import Redis
 from src.core.logger import LOGGING
 from src.core.cache import CacheService
+from src.core.redis_cache_storage import RedisCacheStorage
+from src.core.default_cache_key_generator import DefaultCacheKeyGenerator
 
 # Применяем настройки логирования
 logging_config.dictConfig(LOGGING)
@@ -26,4 +28,8 @@ BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 settings = Settings()
 
-cache_service = CacheService(Redis(host=settings.redis_host, port=settings.redis_port))
+redis_client = Redis(host=settings.redis_host, port=settings.redis_port)
+cache_service = CacheService(
+    storage=RedisCacheStorage(redis_client),
+    key_generator=DefaultCacheKeyGenerator()
+)

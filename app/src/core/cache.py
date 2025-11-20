@@ -1,13 +1,10 @@
-import hashlib
-import json
 from dataclasses import dataclass
-from datetime import datetime, date
 from functools import wraps
 from typing import Any, Callable
-from uuid import UUID
 
-from pydantic import BaseModel
-from redis.asyncio import Redis
+from src.core.cache_key_generator import CacheKeyGenerator
+from src.core.cache_serializer import CacheSerializer
+from src.core.cache_storage import CacheStorage
 from src.core.logger import api_logger as logger
 
 
@@ -17,27 +14,15 @@ class CacheOptions:
 
 
 class CacheService:
-    def __init__(self, redis_client: Redis, namespace: str = "api_cache"):
-        """
-            Инициализация сервиса кеширования
-
-            :param redis_client: клиент Redis
-            :param namespace: префикс для генерации кэша
-        """
-        self.redis = redis_client
-        self.namespace = namespace
-
-    async def _generate_cache_key(self, endpoint: str, params: dict[str, Any]) -> str:
-        """
-        Генерация ключа кеша на основе endpoint и параметров
-
-        :param endpoint: имя endpoint API
-        :param params: параметры запроса
-        :return: сгенерированный ключ
-        """
-        param_str = json.dumps(params, sort_keys=True)
-        param_hash = hashlib.md5(param_str.encode()).hexdigest()
-        return f"{self.namespace}:{endpoint}:{param_hash}"
+    def __init__(
+        self,
+        storage: CacheStorage,
+        key_generator: CacheKeyGenerator,
+        serializer: CacheSerializer = CacheSerializer()
+    ):
+        self.storage = storage
+        self.key_generator = key_generator
+        self.serializer = serializer
 
     async def get_cached_response(
             self,
@@ -56,20 +41,22 @@ class CacheService:
         :return: результат запроса
         """
         options = options or CacheOptions()
-        cache_key = await self._generate_cache_key(endpoint, params)
+        cache_key = await self.key_generator.generate_key(endpoint, params)
 
         try:
-            cached_data = await self.redis.get(cache_key)
+            cached_data = await self.storage.get(cache_key)
             if cached_data is not None:
                 logger.debug(f"Cache hit for {cache_key}")
-                return json.loads(cached_data)
+                return self.serializer.deserialize(cached_data)
 
             logger.debug(f"Cache miss for {cache_key}. Fetching data...")
             result = await fetch_func(params)
 
-            await self.redis.setex(cache_key,
-                                   options.ttl,
-                                   json.dumps(result, default=self._custom_serializer))
+            await self.storage.set(
+                cache_key,
+                self.serializer.serialize(result),
+                options.ttl
+            )
 
             return result
 
@@ -105,21 +92,21 @@ class CacheService:
                     # По умолчанию считаем, что все kwargs - это параметры
                     params = kwargs or (args[0] if args else {})
 
-                cache_key = await self._generate_cache_key(actual_endpoint, params)
+                cache_key = await self.key_generator.generate_key(actual_endpoint, params)
 
                 # Попытка получить из кеша
-                cached_data = await self.redis.get(cache_key)
+                cached_data = await self.storage.get(cache_key)
                 if cached_data is not None:
                     logger.info(f"Cache hit for {cache_key}")
-                    return json.loads(cached_data)
+                    return self.serializer.deserialize(cached_data)
 
                 logger.info(f"Cache miss for {cache_key}. Fetching data...")
                 result = await func(*args, **kwargs)
 
-                await self.redis.setex(
+                await self.storage.set(
                     cache_key,
-                    cache_options.ttl,
-                    json.dumps(result, default=self._custom_serializer)
+                    self.serializer.serialize(result),
+                    cache_options.ttl
                 )
                 return result
 
@@ -134,29 +121,16 @@ class CacheService:
         :param endpoint: имя endpoint API
         :param params: параметры запроса
         """
-        cache_key = await self._generate_cache_key(endpoint, params)
-
-        await self.redis.delete(cache_key)
+        cache_key = await self.key_generator.generate_key(endpoint, params)
+        await self.storage.delete(cache_key)
         logger.debug(f"Cache invalidated for {cache_key}")
 
-    async def clear_namespace(self, namespace: str | None = None) -> None:
+    async def clear_namespace(self, namespace: str) -> None:
         """
         Очистка всего кеша для указанного пространства имен
 
-        :param namespace: пространство имен (если None, используется основное)
+        :param namespace: пространство имен
         """
-        namespace = namespace or self.namespace
         pattern = f"{namespace}:*"
-
-        async for key in self.redis.scan_iter(match=pattern):
-            await self.redis.delete(key)
+        await self.storage.clear_pattern(pattern)
         logger.info(f"Cleared cache namespace: {namespace}")
-
-    def _custom_serializer(self, obj):
-        if isinstance(obj, (datetime, date)):
-            return obj.isoformat()
-        if isinstance(obj, UUID):
-            return str(obj)
-        if isinstance(obj, BaseModel):
-            return obj.model_dump()
-        raise TypeError(f"Object of type {type(obj)} is not JSON serializable")
