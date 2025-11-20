@@ -1,9 +1,11 @@
-from elasticsearch import AsyncElasticsearch
+from src.core.database import elastic_factory
 
 
-es: AsyncElasticsearch | None = None
+async def get_elastic():
+    """Получение клиента Elasticsearch через factory"""
+    return await elastic_factory.get_connection()
 
 
-# Функция понадобится при внедрении зависимостей
-async def get_elastic() -> AsyncElasticsearch:
-    return es
+async def close_elastic():
+    """Закрытие соединения с Elasticsearch"""
+    await elastic_factory.close_connection()

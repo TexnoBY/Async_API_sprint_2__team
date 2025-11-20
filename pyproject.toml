@@ -1,0 +1,15 @@
+[tool.poetry]
+name = "async-api-sprint-2-team"
+version = "0.1.0"
+description = ""
+authors = ["Konstantin Krivosheev <Krivosheev2008@gmail.com>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.10"
+pip = "^25.3"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
