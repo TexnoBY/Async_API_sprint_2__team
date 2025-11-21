@@ -6,14 +6,24 @@ from fastapi.responses import ORJSONResponse
 from redis.asyncio import Redis
 
 from src.api.v1 import films, genres, persons, search
+from src.core.backoff import async_backoff
 from src.core.config import settings
+from src.core.logger import api_logger as logger
 from src.db import elastic, redis
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    redis.redis = Redis(host=settings.redis_host, port=settings.redis_port)
-    elastic.es = AsyncElasticsearch(hosts=[f"http://{settings.elastic_host}"
-                                           f":{settings.elastic_port}"])
+    @async_backoff(0.1, 2, 10, logger)
+    async def create_redis_connection():
+        return Redis(host=settings.redis_host, port=settings.redis_port)
+    
+    @async_backoff(0.1, 2, 10, logger)
+    async def create_elastic_connection():
+        return AsyncElasticsearch(hosts=[f"http://{settings.elastic_host}"
+                                         f":{settings.elastic_port}"])
+    
+    redis.redis = await create_redis_connection()
+    elastic.es = await create_elastic_connection()
     yield
     await redis.redis.aclose()
     await elastic.es.close()

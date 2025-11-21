@@ -46,6 +46,7 @@ class ElasticsearchService(IElasticsearchService):
             raise RuntimeError("Соединение не установлено. Вызовите create_connection()")
         return self._connection
 
+    @backoff(0.1, 2, 10, logger)
     def create_connection(self, hosts: list[str]) -> Elasticsearch:
         """
         Создать соединение с Elasticsearch.
@@ -56,10 +57,6 @@ class ElasticsearchService(IElasticsearchService):
         Returns:
             Экземпляр Elasticsearch клиента
         """
-        try:
-            self._connection = Elasticsearch(hosts=hosts)
-            self.logger.info(f"✅ Соединение с Elasticsearch установлено: {hosts}")
-            return self._connection
-        except Exception as e:
-            self.logger.error(f"❌ Ошибка подключения к Elasticsearch: {e}")
-            raise
+        self._connection = Elasticsearch(hosts=hosts)
+        self.logger.info(f"✅ Соединение с Elasticsearch установлено: {hosts}")
+        return self._connection
