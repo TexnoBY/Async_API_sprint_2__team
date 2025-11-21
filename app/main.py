@@ -5,7 +5,7 @@ from fastapi import FastAPI
 from fastapi.responses import ORJSONResponse
 from redis.asyncio import Redis
 
-from src.api.v1 import films, genres, persons
+from src.api.v1 import films, genres, persons, search
 from src.core.config import settings
 from src.db import elastic, redis
 
@@ -39,5 +39,9 @@ app.include_router(genres.router,
                    tags=['genres'])
 
 app.include_router(persons.router,
-                   prefix='/api/v1/persons',
-                   tags=['persons'])
+                    prefix='/api/v1/persons',
+                    tags=['persons'])
+
+app.include_router(search.router,
+                    prefix='/api/v1',
+                    tags=['search'])

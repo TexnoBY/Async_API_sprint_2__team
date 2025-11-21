@@ -1,6 +1,6 @@
 from typing import List, Optional
 from elasticsearch import AsyncElasticsearch, NotFoundError
-from src.models.genre import GenreList, GenreDitail
+from src.models.genre import GenreList, GenreDitail, Genre
 from src.services.interfaces import GenreRepositoryInterface
 from src.core.database import elastic_factory
 
@@ -36,5 +36,27 @@ class GenreRepository(GenreRepositoryInterface):
             result = await client.search(index='genres', body=body)
             data = [hit['_source'] for hit in result['hits']['hits']]
             return [GenreList(**item) for item in data] if data else None
+        except NotFoundError:
+            return None
+    
+    async def search(self, query: str, page_number: int, page_size: int) -> Optional[List[Genre]]:
+        """Поиск жанров по названию"""
+        body = {
+            "query": {
+                "match": {
+                    "name": {
+                        "query": query,
+                        "fuzziness": "auto"
+                    }
+                }
+            },
+            "from": page_number * page_size,
+            "size": page_size
+        }
+        try:
+            client = await self._get_client()
+            result = await client.search(index='genres', body=body)
+            data = [hit['_source'] for hit in result['hits']['hits']]
+            return [Genre(**item) for item in data] if data else None
         except NotFoundError:
             return None

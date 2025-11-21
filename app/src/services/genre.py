@@ -2,7 +2,7 @@ from typing import List, Optional
 
 from src.services.base import BaseService
 from src.services.interfaces import GenreRepositoryInterface
-from src.models.genre import GenreList, GenreDitail
+from src.models.genre import GenreList, GenreDitail, Genre
 
 
 class GenreService(BaseService):
@@ -15,6 +15,10 @@ class GenreService(BaseService):
     async def get_all_genres(self) -> Optional[List[GenreList]]:
         genres = await self._genre_repo.get_all()
         return genres if genres else None
+
+    async def get_search_list(self, query: str, page_number: int, page_size: int) -> Optional[List[Genre]]:
+        """Поиск жанров по названию"""
+        return await self._genre_repo.search(query, page_number, page_size)
 
 
 def get_genre_service() -> GenreService:
