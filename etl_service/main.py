@@ -17,9 +17,6 @@ from settings import settings
 
 
 def update_movie_index():
-    """
-    Обновить индекс фильмов в Elasticsearch с использованием новых сервисов.
-    """
     # Инициализация сервисов
     es_service = ElasticsearchService()
     es_service.create_connection([settings.elasticsearch_settings.get_host()])
@@ -27,7 +24,6 @@ def update_movie_index():
     index_manager = ElasticsearchIndexManager(es_service.get_connection())
     state_manager = StateManager(JsonFileStorage(logger=logger))
 
-    # Получаем состояние синхронизации
     last_sync_state = state_manager.get_state('movie_index_last_sync_state')
 
     if last_sync_state is None:
@@ -36,10 +32,8 @@ def update_movie_index():
         last_sync_state = parser.isoparse(last_sync_state)
 
     try:
-        # Обеспечиваем существование индекса с правильными анализаторами
         index_manager.ensure_index_exists(Movie)
-        
-        # Загружаем и индексируем данные
+
         for rows in get_movie_index_data(settings.database_settings.get_dsn(), last_sync_state, 100):
             es_load_data = (dict(d.to_dict(True, skip_empty=False), **{'_id': d.id}) for d in rows)
             
@@ -49,7 +43,6 @@ def update_movie_index():
             if last_change_date > last_sync_state:
                 last_sync_state = last_change_date
 
-        # Сохраняем состояние
         state_manager.set_state('movie_index_last_sync_state', last_sync_state.isoformat())
         logger.info("✅ Обновление индекса фильмов завершено успешно")
         
@@ -59,9 +52,6 @@ def update_movie_index():
 
 
 def update_person_index():
-    """
-    Обновить индекс персон в Elasticsearch с использованием новых сервисов.
-    """
     # Инициализация сервисов
     es_service = ElasticsearchService()
     es_service.create_connection([settings.elasticsearch_settings.get_host()])

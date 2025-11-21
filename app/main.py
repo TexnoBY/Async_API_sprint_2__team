@@ -15,7 +15,7 @@ async def lifespan(app: FastAPI):
     elastic.es = AsyncElasticsearch(hosts=[f"http://{settings.elastic_host}"
                                            f":{settings.elastic_port}"])
     yield
-    await redis.redis.close()
+    await redis.redis.aclose()
     await elastic.es.close()
 
 

@@ -15,13 +15,10 @@ LOGGING = {
             'format': LOG_FORMAT
         },
         'default': {
-            '()': 'uvicorn.logging.DefaultFormatter',
-            'fmt': '%(levelprefix)s %(message)s',
-            'use_colors': None,
+            'format': '%(levelprefix)s %(message)s',
         },
         'access': {
-            '()': 'uvicorn.logging.AccessFormatter',
-            'fmt': "%(levelprefix)s %(client_addr)s - '%(request_line)s' %(status_code)s",
+            'format': "%(levelprefix)s %(client_addr)s - '%(request_line)s' %(status_code)s",
         },
     },
     'handlers': {

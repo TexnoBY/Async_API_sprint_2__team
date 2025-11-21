@@ -66,24 +66,3 @@ services:
       timeout: 3s
       retries: 5
 
-  test_runner:
-    build:
-      context: .
-      dockerfile: docker/tests/Dockerfile.test
-    env_file:
-      - .env.test
-    depends_on:
-      test_elastic_search:
-        condition: service_healthy
-      test_redis:
-        condition: service_healthy
-    volumes:
-      - ./app:/opt/app
-    working_dir: /opt/app
-    command: >
-      sh -c "
-        echo 'Waiting for services...' &&
-        sleep 10 &&
-        echo 'Running tests...' &&
-        python -m pytest tests/test_films.py -v
-      "

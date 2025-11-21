@@ -26,16 +26,13 @@ class ElasticsearchIndexManager(IIndexManager):
         index_name = document_class.Index.name
         
         try:
-            # 1. Удалить существующий индекс если он есть
             if self.es.indices.exists(index=index_name):
                 self.logger.info(f"Удаляем существующий индекс: {index_name}")
                 self.es.indices.delete(index=index_name)
-            
-            # 2. Создать индекс с правильными настройками
+
             self.logger.info(f"Создаем индекс с анализаторами: {index_name}")
             document_class.init(using=self.es)
-            
-            # 3. Проверить что анализаторы созданы
+
             settings = self.es.indices.get_settings(index=index_name)
             analysis = settings[index_name]['settings']['index'].get('analysis', {})
             
@@ -58,13 +55,11 @@ class ElasticsearchIndexManager(IIndexManager):
         index_name = document_class.Index.name
         
         try:
-            # Если индекс не существует - создаем его
             if not self.es.indices.exists(index=index_name):
                 self.logger.info(f"Индекс {index_name} не существует, создаем...")
                 document_class.init(using=self.es)
                 return
-            
-            # Если индекс существует - проверяем настройки
+
             if self.index_needs_recreation(document_class):
                 self.logger.info(f"Индекс {index_name} требует пересоздания для анализаторов")
                 self.recreate_index_with_analyzers(document_class)
@@ -88,21 +83,16 @@ class ElasticsearchIndexManager(IIndexManager):
         index_name = document_class.Index.name
         
         try:
-            # Получаем текущие настройки индекса
             current_settings = self._get_current_index_settings(index_name)
-            
-            # Получаем ожидаемые настройки из документа
+
             expected_analysis = document_class.Index.settings.get('analysis', {})
-            
-            # Сравниваем настройки анализа
+
             current_analysis = current_settings.get('analysis', {})
-            
-            # Проверяем наличие анализатора ru_en
+
             if 'analyzer' not in current_analysis or 'ru_en' not in current_analysis['analyzer']:
                 self.logger.info(f"Индекс {index_name}: отсутствует анализатор ru_en")
                 return True
-            
-            # Проверяем что настройки анализатора совпадают
+
             current_ru_en = current_analysis['analyzer']['ru_en']
             expected_ru_en = expected_analysis['analyzer']['ru_en']
             

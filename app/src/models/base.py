@@ -1,12 +1,14 @@
 from uuid import UUID
 
-from pydantic import BaseModel, Field, validator
+from pydantic import BaseModel, Field, field_validator
+
 
 
 class UUIDBase(BaseModel):
     uuid: UUID = Field(alias='id')
 
-    @validator('uuid', pre=True)
+    @field_validator('uuid', mode='before')
+    @classmethod
     def parse_uuid(cls, v):
         if isinstance(v, UUID):
             return v

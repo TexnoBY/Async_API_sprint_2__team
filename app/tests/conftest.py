@@ -14,17 +14,28 @@ from main import app
 @pytest.fixture(scope="session")
 def client():
     """Создание тестового клиента для FastAPI приложения"""
+    # Устанавливаем переменные окружения для тестов
+    os.environ.setdefault('ELASTIC_HOST_NAME', 'test_elastic_search')
+    os.environ.setdefault('ELASTIC_PORT', '9200')
+    os.environ.setdefault('REDIS_HOST', 'test_redis')
+    os.environ.setdefault('REDIS_PORT', '6379')
+    
     with TestClient(app) as client:
         yield client
 
 
 @pytest.fixture(scope="session")
-def setup_test_data():
+def test_settings():
+    """Фикстура с тестовыми настройками"""
+    from src.core.config import settings
+    return settings
+
+
+@pytest.fixture(scope="session")
+def setup_test_data(test_settings):
     """Настройка Elasticsearch и создание тестовых данных"""
     async def setup():
-        es_host = os.getenv("ELASTIC_HOST_NAME", "localhost")
-        es_port = "9200"
-        es = AsyncElasticsearch(hosts=[f"http://{es_host}:{es_port}"])
+        es = AsyncElasticsearch(hosts=[f"http://{test_settings.elastic_host}:{test_settings.elastic_port}"])
         
         # Ждем пока Elasticsearch будет готов
         max_retries = 30
@@ -32,16 +43,19 @@ def setup_test_data():
             try:
                 await es.ping()
                 break
-            except Exception:
+            except Exception as e:
                 if i == max_retries - 1:
-                    raise Exception("Elasticsearch is not available")
+                    raise Exception(f"Elasticsearch is not available after {max_retries} attempts: {e}")
                 await asyncio.sleep(2)
         
-        # Удаляем индекс если он существует
-        if await es.indices.exists(index="movies"):
-            await es.indices.delete(index="movies")
+        # Очистка индексов перед тестами
+        indices_to_clean = ["movies", "persons", "genres"]
         
-        # Создаем индекс movies
+        for index_name in indices_to_clean:
+            if await es.indices.exists(index=index_name):
+                await es.indices.delete(index=index_name)
+        
+        # Создаем индекс movies с тестовыми данными
         await es.indices.create(index="movies")
         
         # Добавляем тестовый фильм
@@ -91,15 +105,50 @@ def setup_test_data():
             ]
         }
         
+        # Индексируем тестовые данные
         await es.index(index="movies", id=film_uuid, body=test_film)
         await es.index(index="movies", id=film_uuid2, body=test_film2)
+        
+        # Принудительное обновление индекса
         await es.indices.refresh(index="movies")
         
-        # Небольшая задержка для индексации
-        await asyncio.sleep(2)
+        # Проверяем, что данные успешно проиндексированы
+        try:
+            result = await es.get(index="movies", id=film_uuid)
+            if not result['found']:
+                raise Exception(f"Failed to index test film with UUID: {film_uuid}")
+        except Exception as e:
+            raise Exception(f"Test data verification failed: {e}")
+        
+        # Небольшая задержка для стабильности
+        await asyncio.sleep(1)
         
         await es.close()
         
         return film_uuid
     
     return asyncio.run(setup())
+
+
+@pytest.fixture(scope="session", autouse=True)
+def cleanup_test_data(test_settings):
+    """Очистка тестовых данных после всех тестов"""
+    async def cleanup():
+        es = AsyncElasticsearch(hosts=[f"http://{test_settings.elastic_host}:{test_settings.elastic_port}"])
+        
+        try:
+            # Удаляем тестовые индексы
+            indices_to_clean = ["movies", "persons", "genres"]
+            for index_name in indices_to_clean:
+                if await es.indices.exists(index=index_name):
+                    await es.indices.delete(index=index_name)
+        except Exception:
+            # Игнорируем ошибки при очистке, так как это может нарушить CI/CD
+            pass
+        finally:
+            await es.close()
+    
+    yield
+    
+    # Очистка после всех тестов
+    asyncio.run(cleanup())
