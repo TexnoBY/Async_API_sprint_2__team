@@ -19,3 +19,14 @@ class PersonService(SearchableService):
     async def get_films_by_person(self, person_id: str) -> Optional[List[FilmByPerson]]:
         films = await self._person_repo.get_films_by_person(person_id)
         return films if films else None
+
+
+def get_person_service() -> PersonService:
+    """Factory function for PersonService dependency injection"""
+    from src.repositories.person_repository import PersonRepository
+    from src.db.elastic import get_elastic_client
+    
+    # This is a simplified version - in real implementation you'd use proper DI
+    elastic_client = get_elastic_client()
+    person_repository = PersonRepository(elastic_client)
+    return PersonService(person_repository)

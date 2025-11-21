@@ -42,7 +42,7 @@ async def film_details(film_id: Annotated[str, Path(description='Movie ID to dis
     film = await film_service.get_by_id(film_id)
     if not film:
         raise HTTPException(status_code=HTTPStatus.NOT_FOUND,
-                            detail='film not founds')
+                            detail='film not found')
     return film
 
 
@@ -68,7 +68,7 @@ async def film_list(sort: Annotated[str, Query(description='Field for sorting')]
         sort_order = 'asc'
     films = await film_service.get_sort_list_by_param(sort, sort_order,
                                                       page_number,
-                                                      page_size, genres)
+                                                      page_size, genres or "")
     if not films:
         raise HTTPException(status_code=HTTPStatus.NOT_FOUND,
                             detail='film not found')

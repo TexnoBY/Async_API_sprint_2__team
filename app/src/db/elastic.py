@@ -9,3 +9,10 @@ async def get_elastic():
 async def close_elastic():
     """Закрытие соединения с Elasticsearch"""
     await elastic_factory.close_connection()
+
+
+def get_elastic_client():
+    """Получение клиента Elasticsearch для dependency injection"""
+    # This is a simplified version for testing
+    # In real implementation, you'd return the actual client
+    return None

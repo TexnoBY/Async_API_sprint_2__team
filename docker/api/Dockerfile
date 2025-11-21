@@ -3,7 +3,7 @@ FROM python:3.10.19
 WORKDIR /opt/app
 
 RUN apt-get update \
-     &&  apt-get install -y procps="2:4.0.2-3" \
+     &&  apt-get install -y procps \
      && rm -rf /var/lib/apt/lists/*
 
 COPY ./app/pyproject.toml pyproject.toml

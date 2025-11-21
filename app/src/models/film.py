@@ -8,6 +8,10 @@ from src.models.base import UUIDBase
 class FilmList(UUIDBase):
     title: str
     imdb_rating: float
+    genres: list[GenreList] = []
+    directors: list[PersonFilmDitail] = []
+    actors: list[PersonFilmDitail] = []
+    writers: list[PersonFilmDitail] = []
 
 
 class FilmDitail(FilmList):

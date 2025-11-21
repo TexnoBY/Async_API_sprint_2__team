@@ -1,42 +1,69 @@
 from typing import List, Optional
-from src.repositories.elastic_repository import ElasticsearchRepository
+from elasticsearch import AsyncElasticsearch, NotFoundError
+from src.services.interfaces import FilmRepositoryInterface
 from src.models.film import FilmList, FilmDitail
+from src.core.database import elastic_factory
 
 
-class FilmRepository(ElasticsearchRepository):
+class FilmRepository(FilmRepositoryInterface):
     """Репозиторий для работы с фильмами"""
     
-    async def get_film_by_id(self, film_id: str) -> Optional[FilmDitail]:
-        data = await self.get_by_id('movies', film_id)
-        return FilmDitail(**data) if data else None
+    def __init__(self, connection_factory=None):
+        self.factory = connection_factory or elastic_factory
+        self._client: Optional[AsyncElasticsearch] = None
     
-    async def search_films(self, query: str, page: int, page_size: int) -> List[FilmList]:
-        body = {
-            "from": page * page_size,
-            "size": page_size,
-            "query": {"match": {"title": query}}
-        }
-        data = await self.search('movies', body)
-        return [FilmList(**item) for item in data]
+    async def _get_client(self) -> AsyncElasticsearch:
+        """Получает клиент Elasticsearch"""
+        if self._client is None:
+            self._client = await self.factory.get_connection()
+        return self._client
     
-    async def get_sorted_films(self, sort_field: str, sort_order: str = "asc",
-                              page: int = 0, page_size: int = 10,
-                              genres: Optional[str] = None) -> List[FilmList]:
-        body = {
-            "sort": [{sort_field: {"order": sort_order}}],
-            "from": page * page_size,
-            "size": page_size,
-        }
-        if genres:
-            body["query"] = {
-                'bool': {
-                    'filter': [{
-                        'nested': {
-                            'path': 'genres',
-                            'query': {'term': {'genres.id': str(genres)}}
-                        }
-                    }]
-                }
+    async def get_by_id(self, entity_id: str) -> Optional[FilmDitail]:
+        try:
+            client = await self._get_client()
+            doc = await client.get(index='movies', id=entity_id)
+            return FilmDitail(**doc['_source'])
+        except NotFoundError:
+            return None
+    
+    async def search(self, query: str, page: int = 0, page_size: int = 10) -> Optional[List[FilmList]]:
+        try:
+            body = {
+                "from": page * page_size,
+                "size": page_size,
+                "query": {"match": {"title": query}}
             }
-        data = await self.search('movies', body)
-        return [FilmList(**item) for item in data]
+            client = await self._get_client()
+            result = await client.search(index='movies', body=body)
+            return [FilmList(**hit['_source']) for hit in result['hits']['hits']]
+        except NotFoundError:
+            return []
+    
+    async def get_sorted(self, sort_field: str, sort_order: str = "asc",
+                         page: int = 0, page_size: int = 10, **kwargs) -> Optional[List[FilmList]]:
+        try:
+            genres = kwargs.get('genres')
+            body = {
+                "sort": [{sort_field: {"order": sort_order}}],
+                "from": page * page_size,
+                "size": page_size,
+            }
+            if genres:
+                body["query"] = {
+                    'bool': {
+                        'filter': [{
+                            'nested': {
+                                'path': 'genres',
+                                'query': {'term': {'genres.id': str(genres)}}
+                            }
+                        }]
+                    }
+}
+            client = await self._get_client()
+            result = await client.search(index='movies', body=body)
+            hits = result['hits']['hits']
+            if not hits:
+                return None
+            return [FilmList(**hit['_source']) for hit in hits]
+        except NotFoundError:
+            return []

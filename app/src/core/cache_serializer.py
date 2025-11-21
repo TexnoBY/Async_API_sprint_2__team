@@ -1,6 +1,7 @@
 import json
 from datetime import datetime, date
 from typing import Any
+from uuid import UUID
 
 from pydantic import BaseModel
 
@@ -18,6 +19,8 @@ class CacheSerializer:
     def _custom_serializer(obj: Any) -> Any:
         if isinstance(obj, (datetime, date)):
             return obj.isoformat()
+        if isinstance(obj, UUID):
+            return str(obj)
         if isinstance(obj, type(None)):
             return None
         if hasattr(obj, '__dict__'):

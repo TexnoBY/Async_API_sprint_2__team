@@ -14,8 +14,8 @@ class ElasticsearchConnectionFactory:
     async def create_connection(self) -> AsyncElasticsearch:
         """Создает новое соединение с Elasticsearch"""
         return AsyncElasticsearch(
-            hosts=[f"{self.host}:{self.port}"],
-            timeout=30,
+            hosts=[f"http://{self.host}:{self.port}"],
+            request_timeout=30,
             max_retries=3,
             retry_on_timeout=True
         )

@@ -1,0 +1,19 @@
+FROM python:3.10.19-slim
+
+WORKDIR /opt/app
+
+# Устанавливаем зависимости напрямую через pip
+RUN pip install fastapi==0.111.0 \
+    elasticsearch==8.13.2 \
+    redis==5.0.4 \
+    pydantic-settings==2.10.1 \
+    pytest==7.4.3 \
+    httpx==0.25.2 \
+    pytest-asyncio==0.21.1 \
+    aiohttp==3.9.1
+
+# Копируем исходный код
+COPY app/ .
+
+# Запускаем тесты по умолчанию
+CMD ["python", "-m", "pytest", "tests/", "-v"]

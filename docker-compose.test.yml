@@ -1,8 +1,22 @@
 services:
+  test_etl:
+    build:
+      context: .
+      dockerfile: docker/etl/Dockerfile
+    env_file:
+      - .env.test
+    depends_on:
+      test_elastic_search:
+        condition: service_healthy
+      test_theatre_db:
+        condition: service_healthy
+
   test_api:
     build:
       context: .
-      dockerfile: docker/api/Dockerfile
+      dockerfile: docker/api/Dockerfile.test
+    env_file:
+      - .env.test
     depends_on:
       test_elastic_search:
         condition: service_healthy
@@ -10,23 +24,16 @@ services:
         condition: service_healthy
       test_redis:
         condition: service_healthy
-    env_file:
-      - .env
-    environment:
-      - ELASTIC_HOST=test_elastic_search
-      - REDIS_HOST=test_redis
-      - POSTGRES_HOST=test_theatre_db
-    entrypoint: ["sh", "-c"]
-    command: >
-      poetry install --with dev --no-interaction --no-ansi &&
-      pytest tests/ -v
+      test_etl:
+        condition: service_started
 
   test_elastic_search:
-    image: elasticsearch:8.6.2
-    expose:
-      - "9200"
+    image: elasticsearch:8.13.0
+    ports:
+      - "9200:9200"
+      - "9300:9300"
     healthcheck:
-      test: curl -s http://test_elastic_search:9200 >/dev/null || exit 1
+      test: curl -s http://localhost:9200 >/dev/null || exit 1
       interval: 30s
       timeout: 10s
       retries: 50
@@ -37,7 +44,7 @@ services:
   test_theatre_db:
     image: postgres:15
     env_file:
-      - .env
+      - .env.test
     volumes:
       - ./database_dump.sql:/docker-entrypoint-initdb.d/init.sql:ro
     healthcheck:
@@ -49,10 +56,34 @@ services:
   test_redis:
     image: redis:7.0.5-alpine
     hostname: test_redis
+    ports:
+      - "6379:6379"
     env_file:
-      - .env
+      - .env.test
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 5s
       timeout: 3s
       retries: 5
+
+  test_runner:
+    build:
+      context: .
+      dockerfile: docker/tests/Dockerfile.test
+    env_file:
+      - .env.test
+    depends_on:
+      test_elastic_search:
+        condition: service_healthy
+      test_redis:
+        condition: service_healthy
+    volumes:
+      - ./app:/opt/app
+    working_dir: /opt/app
+    command: >
+      sh -c "
+        echo 'Waiting for services...' &&
+        sleep 10 &&
+        echo 'Running tests...' &&
+        python -m pytest tests/test_films.py -v
+      "

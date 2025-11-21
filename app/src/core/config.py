@@ -15,11 +15,15 @@ logging_config.dictConfig(LOGGING)
 
 
 class Settings(BaseSettings):
-    model_config = SettingsConfigDict(env_file='.env', env_file_encoding='utf-8')
+    model_config = SettingsConfigDict(
+        env_file=['.env', '.env.test'], 
+        env_file_encoding='utf-8',
+        extra='ignore'
+    )
     project_name: str = 'Some project name'
-    redis_host: str = ...
-    redis_port: int = ...
-    elastic_host: str = Field(..., alias='ELASTIC_HOST_NAME')
+    redis_host: str = Field('localhost', alias='REDIS_HOST')
+    redis_port: int = Field(6379, alias='REDIS_PORT')
+    elastic_host: str = Field('localhost', alias='ELASTIC_HOST_NAME')
     elastic_port: int = Field(9200, alias='ELASTIC_PORT')
 
 

@@ -3,10 +3,10 @@ FROM python:3.10.19
 WORKDIR /opt/app
 
 RUN apt-get update \
-     &&  apt-get install -y procps \
+     && apt-get install -y procps curl redis-tools \
      && rm -rf /var/lib/apt/lists/*
 
-COPY ./etl_service/pyproject.toml pyproject.toml
+COPY ./app/pyproject.toml pyproject.toml
 
 RUN pip install --upgrade pip \
       && pip install --no-cache-dir poetry==1.8.3 \
@@ -16,7 +16,7 @@ RUN pip install --upgrade pip \
 ENV PYTHONDONTWRITEBYTECODE 1
 ENV PYTHONUNBUFFERED 1
 
-COPY ./etl_service .
+COPY ./app .
 
 RUN chmod +x ./main.py
 
@@ -26,4 +26,6 @@ RUN groupadd -r app_group \
      && chown app:app_group -R /var/log/
 
 USER app
-ENTRYPOINT ["python", "/opt/app/main.py"]
+
+# Wait for services to be ready before running tests
+CMD ["sh", "-c", "curl -f http://test_elastic_search:9200/_cluster/health && redis-cli -h test_redis ping && pytest tests/ -v"]
