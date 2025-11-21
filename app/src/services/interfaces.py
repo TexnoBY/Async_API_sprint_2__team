@@ -4,6 +4,9 @@ from typing import List, Optional, TypeVar, Generic, Any, Dict
 T = TypeVar('T')
 ID = TypeVar('ID')
 
+# Import models for type hints
+from src.models.genre import GenreDitail, GenreList
+
 
 class BaseRepository(Generic[T, ID], ABC):
     """Базовый интерфейс для всех репозиториев"""
@@ -38,11 +41,11 @@ class FilmRepositoryInterface(SearchableRepository, SortableRepository, ABC):
     pass
 
 
-class GenreRepositoryInterface(BaseRepository, ABC):
+class GenreRepositoryInterface(BaseRepository[GenreDitail, str], ABC):
     """Интерфейс для репозитория жанров"""
     
     @abstractmethod
-    async def get_all(self) -> Optional[List[T]]:
+    async def get_all(self) -> Optional[List[GenreList]]:
         """Получить все жанры"""
         pass
 

@@ -58,6 +58,7 @@ def setup_test_data(test_settings):
         # Создаем индексы с тестовыми данными
         await es.indices.create(index="movies")
         await es.indices.create(index="persons")
+        await es.indices.create(index="genres")
         
         # Добавляем тестовый фильм
         film_uuid = str(uuid4())
@@ -65,6 +66,13 @@ def setup_test_data(test_settings):
         director_uuid = str(uuid4())
         actor_uuid = str(uuid4())
         writer_uuid = str(uuid4())
+        
+        # Добавляем тестовый жанр
+        test_genre = {
+            "id": genre_uuid,
+            "name": "Test Genre",
+            "description": "A test genre for functional testing"
+        }
         
         test_film = {
             "id": film_uuid,
@@ -146,10 +154,12 @@ def setup_test_data(test_settings):
         await es.index(index="persons", id=actor_uuid, body=test_person)
         await es.index(index="persons", id=director_uuid, body=test_director)
         await es.index(index="persons", id=writer_uuid, body=test_writer)
+        await es.index(index="genres", id=genre_uuid, body=test_genre)
         
         # Принудительное обновление индексов
         await es.indices.refresh(index="movies")
         await es.indices.refresh(index="persons")
+        await es.indices.refresh(index="genres")
         
         # Проверяем, что данные успешно проиндексированы
         try:
@@ -172,7 +182,8 @@ def setup_test_data(test_settings):
             "film_uuid": film_uuid,
             "person_uuid": actor_uuid,
             "director_uuid": director_uuid,
-            "writer_uuid": writer_uuid
+            "writer_uuid": writer_uuid,
+            "genre_uuid": genre_uuid
         }
     
     return asyncio.run(setup())
