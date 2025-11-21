@@ -8,7 +8,7 @@ class TestFilmEndpoints:
 
     def test_film_details_success(self, client: TestClient, setup_test_data):
         """Тест успешного получения детальной информации о фильме"""
-        film_uuid = setup_test_data
+        film_uuid = setup_test_data["film_uuid"]
         response = client.get(f"/api/v1/films/{film_uuid}")
         
         assert response.status_code == 200

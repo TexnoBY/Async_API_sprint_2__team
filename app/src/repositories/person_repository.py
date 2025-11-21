@@ -6,17 +6,17 @@ from src.models.person import PersonSearch, PersonDetail, FilmByPerson
 class PersonRepository(ElasticsearchRepository):
     """Репозиторий для работы с персонами"""
     
-    async def get_person_by_id(self, person_id: str) -> Optional[PersonDetail]:
-        data = await self.get_by_id('person', person_id)
+    async def get_by_id(self, person_id: str) -> Optional[PersonDetail]:
+        data = await super().get_by_id('persons', person_id)
         return PersonDetail(**data) if data else None
     
-    async def search_persons(self, query: str, page: int, page_size: int) -> List[PersonSearch]:
+    async def search(self, query: str, page: int, page_size: int) -> List[PersonSearch]:
         body = {
             "from": page * page_size,
             "size": page_size,
             "query": {"match": {"full_name": query}}
         }
-        data = await self.search('person', body)
+        data = await super().search('persons', body)
         return [PersonSearch(**item) for item in data]
     
     async def get_films_by_person(self, person_id: str) -> List[FilmByPerson]:
@@ -24,29 +24,16 @@ class PersonRepository(ElasticsearchRepository):
             "query": {
                 "bool": {
                     "should": [
-                        {
-                            "nested": {
-                                "path": "actors",
-                                "query": {"term": {"actors.id": person_id}}
-                            }
-                        },
-                        {
-                            "nested": {
-                                "path": "directors",
-                                "query": {"term": {"directors.id": person_id}}
-                            }
-                        },
-                        {
-                            "nested": {
-                                "path": "writers",
-                                "query": {"term": {"writers.id": person_id}}
-                            }
-                        }
+                        {"term": {"actors_ids": person_id}},
+                        {"term": {"directors_ids": person_id}},
+                        {"term": {"writers_ids": person_id}}
                     ]
                 }
             },
             "_source": ["id", "title", "imdb_rating"]
         }
         
-        data = await self.search('movies', body)
+        client = await self._get_client()
+        result = await client.search(index='movies', body=body)
+        data = [hit['_source'] for hit in result['hits']['hits']]
         return [FilmByPerson(**item) for item in data]

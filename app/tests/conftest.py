@@ -55,8 +55,9 @@ def setup_test_data(test_settings):
             if await es.indices.exists(index=index_name):
                 await es.indices.delete(index=index_name)
         
-        # Создаем индекс movies с тестовыми данными
+        # Создаем индексы с тестовыми данными
         await es.indices.create(index="movies")
+        await es.indices.create(index="persons")
         
         # Добавляем тестовый фильм
         film_uuid = str(uuid4())
@@ -81,7 +82,10 @@ def setup_test_data(test_settings):
             ],
             "writers": [
                 {"id": writer_uuid, "name": "Test Writer"}
-            ]
+            ],
+            "actors_ids": [actor_uuid],
+            "directors_ids": [director_uuid],
+            "writers_ids": [writer_uuid]
         }
         
         # Добавляем второй фильм для тестов списка и поиска
@@ -102,21 +106,60 @@ def setup_test_data(test_settings):
             ],
             "writers": [
                 {"id": writer_uuid, "name": "Test Writer"}
+            ],
+            "actors_ids": [actor_uuid],
+            "directors_ids": [director_uuid],
+            "writers_ids": [writer_uuid]
+        }
+        
+        # Добавляем тестовые персоны
+        test_person = {
+            "id": actor_uuid,
+            "full_name": "Test Actor",
+            "films": [
+                {"id": film_uuid, "title": "Test Film", "imdb_rating": 8.5, "roles": "actor"},
+                {"id": film_uuid2, "title": "Another Test Movie", "imdb_rating": 7.2, "roles": "actor"}
+            ]
+        }
+        
+        test_director = {
+            "id": director_uuid,
+            "full_name": "Test Director",
+            "films": [
+                {"id": film_uuid, "title": "Test Film", "imdb_rating": 8.5, "roles": "director"},
+                {"id": film_uuid2, "title": "Another Test Movie", "imdb_rating": 7.2, "roles": "director"}
+            ]
+        }
+        
+        test_writer = {
+            "id": writer_uuid,
+            "full_name": "Test Writer",
+            "films": [
+                {"id": film_uuid, "title": "Test Film", "imdb_rating": 8.5, "roles": "writer"},
+                {"id": film_uuid2, "title": "Another Test Movie", "imdb_rating": 7.2, "roles": "writer"}
             ]
         }
         
         # Индексируем тестовые данные
         await es.index(index="movies", id=film_uuid, body=test_film)
         await es.index(index="movies", id=film_uuid2, body=test_film2)
+        await es.index(index="persons", id=actor_uuid, body=test_person)
+        await es.index(index="persons", id=director_uuid, body=test_director)
+        await es.index(index="persons", id=writer_uuid, body=test_writer)
         
-        # Принудительное обновление индекса
+        # Принудительное обновление индексов
         await es.indices.refresh(index="movies")
+        await es.indices.refresh(index="persons")
         
         # Проверяем, что данные успешно проиндексированы
         try:
             result = await es.get(index="movies", id=film_uuid)
             if not result['found']:
                 raise Exception(f"Failed to index test film with UUID: {film_uuid}")
+            
+            person_result = await es.get(index="persons", id=actor_uuid)
+            if not person_result['found']:
+                raise Exception(f"Failed to index test person with UUID: {actor_uuid}")
         except Exception as e:
             raise Exception(f"Test data verification failed: {e}")
         
@@ -125,7 +168,12 @@ def setup_test_data(test_settings):
         
         await es.close()
         
-        return film_uuid
+        return {
+            "film_uuid": film_uuid,
+            "person_uuid": actor_uuid,
+            "director_uuid": director_uuid,
+            "writer_uuid": writer_uuid
+        }
     
     return asyncio.run(setup())
 

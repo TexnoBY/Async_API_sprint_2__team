@@ -16,9 +16,12 @@ class PersonService(SearchableService):
         persons = await self._person_repo.search(query, page, page_size)
         return persons if persons else None
 
+    async def get_search_list(self, query: str, page: int = 0, page_size: int = 10) -> Optional[List[PersonSearch]]:
+        return await self.search(query, page, page_size)
+
     async def get_films_by_person(self, person_id: str) -> Optional[List[FilmByPerson]]:
         films = await self._person_repo.get_films_by_person(person_id)
-        return films if films else None
+        return films
 
 
 def get_person_service() -> PersonService:
