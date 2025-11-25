@@ -1,8 +1,6 @@
-
-
+from src.models.base import UUIDBase
 from src.models.genre import GenreList
 from src.models.person import PersonFilmDitail
-from src.models.base import UUIDBase
 
 
 class FilmList(UUIDBase):

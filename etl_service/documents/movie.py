@@ -15,12 +15,14 @@ from psycopg import ServerCursor
 from psycopg.conninfo import make_conninfo
 from psycopg.rows import class_row
 
+
 class Genre(InnerDoc):
     id = Keyword()
     name = Text(analyzer='ru_en')
 
     class Meta:
         dynamic = MetaField('strict')
+
 
 class Director(InnerDoc):
     id = Keyword()
@@ -96,9 +98,8 @@ class Movie(Document):
 
 
 def get_movie_index_data(
-    database_settings: dict, last_sync_state: datetime, batch_size: int = 100
+        database_settings: dict, last_sync_state: datetime, batch_size: int = 100
 ) -> Generator[list[Movie], None, None]:
-
     dsn = make_conninfo(**database_settings)
 
     with psycopg.connect(dsn, row_factory=class_row(Movie)) as conn, ServerCursor(conn, 'fetcher') as cursor:

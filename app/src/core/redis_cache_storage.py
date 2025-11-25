@@ -1,7 +1,6 @@
 from typing import Optional
 
 from redis.asyncio import Redis
-
 from src.core.cache_storage import CacheStorage
 
 

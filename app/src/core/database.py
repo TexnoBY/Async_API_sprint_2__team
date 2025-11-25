@@ -1,4 +1,5 @@
 from typing import Optional
+
 from elasticsearch import AsyncElasticsearch
 from src.core.config import settings
 

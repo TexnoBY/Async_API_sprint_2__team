@@ -3,10 +3,10 @@ from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Path
 from pydantic import TypeAdapter
-
-from src.services.person import PersonService, get_person_service
-from src.models.person import PersonSearch, PersonDetail, FilmByPerson
+from src.api.v1.pagination import PaginationDep
 from src.core.config import cache_service
+from src.models.person import PersonSearch, PersonDetail, FilmByPerson
+from src.services.person import PersonService, get_person_service
 
 router = APIRouter()
 
@@ -14,17 +14,16 @@ router = APIRouter()
 @router.get('/search', response_model=list[PersonSearch])
 @cache_service.cached(
     endpoint="api_person_search",
-    params_extractor=lambda query, page_size, page_number, **kwargs: {
+    params_extractor=lambda query, pagination, **kwargs: {
         "query": query,
-        "page_size": page_size,
-        "page_number": page_number
+        "page_size": pagination.page_size,
+        "page_number": pagination.page_number
     }
 )
 async def person_search(query: Annotated[str, Query(description='Word to search person by name')],
-                        page_size: Annotated[int, Query(description='Pagination page size', ge=1)] = 10,
-                        page_number: Annotated[int, Query(description='Pagination page number', ge=0)] = 0,
+                        pagination: PaginationDep,
                         person_service: PersonService = Depends(get_person_service)) -> list[PersonSearch]:
-    persons = await person_service.get_search_list(query, page_number, page_size)
+    persons = await person_service.get_search_list(query, pagination.page_number, pagination.page_size)
     if not persons:
         raise HTTPException(status_code=HTTPStatus.NOT_FOUND,
                             detail='persons not found')

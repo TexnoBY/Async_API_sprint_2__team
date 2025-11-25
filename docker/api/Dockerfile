@@ -11,7 +11,8 @@ COPY ./app/pyproject.toml pyproject.toml
 RUN pip install --upgrade pip \
       && pip install --no-cache-dir poetry==1.8.3 \
      && poetry config virtualenvs.create false \
-     && poetry install --no-interaction --no-ansi --no-root
+     && poetry install --no-interaction --no-ansi --no-root \
+     && pip install gunicorn
 
 ENV PYTHONDONTWRITEBYTECODE 1
 ENV PYTHONUNBUFFERED 1
@@ -26,4 +27,4 @@ RUN groupadd -r app_group \
      && chown app:app_group -R /var/log/
 
 USER app
-ENTRYPOINT ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
+ENTRYPOINT ["gunicorn", "main:app", "-w", "4", "-k", "uvicorn.workers.UvicornWorker", "--bind", "0.0.0.0:8000"]

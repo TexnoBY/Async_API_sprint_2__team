@@ -1,8 +1,8 @@
 from typing import List, Optional
 
+from src.models.genre import GenreList, GenreDitail, Genre
 from src.services.base import BaseService
 from src.services.interfaces import GenreRepositoryInterface
-from src.models.genre import GenreList, GenreDitail, Genre
 
 
 class GenreService(BaseService):
@@ -24,6 +24,6 @@ class GenreService(BaseService):
 def get_genre_service() -> GenreService:
     """Factory function for GenreService dependency injection"""
     from src.repositories.genre_repository import GenreRepository
-    
+
     genre_repository = GenreRepository()
     return GenreService(genre_repository)

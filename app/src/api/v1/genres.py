@@ -3,10 +3,9 @@ from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, Path
 from pydantic import TypeAdapter
-
-from src.services.genre import GenreService, get_genre_service
-from src.models.genre import GenreList, GenreDitail
 from src.core.config import cache_service
+from src.models.genre import GenreList, GenreDitail
+from src.services.genre import GenreService, get_genre_service
 
 router = APIRouter()
 

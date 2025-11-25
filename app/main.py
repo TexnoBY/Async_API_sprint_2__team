@@ -11,17 +11,18 @@ from src.core.config import settings
 from src.core.logger import api_logger as logger
 from src.db import elastic, redis
 
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     @async_backoff(0.1, 2, 10, logger)
     async def create_redis_connection():
         return Redis(host=settings.redis_host, port=settings.redis_port)
-    
+
     @async_backoff(0.1, 2, 10, logger)
     async def create_elastic_connection():
         return AsyncElasticsearch(hosts=[f"http://{settings.elastic_host}"
                                          f":{settings.elastic_port}"])
-    
+
     redis.redis = await create_redis_connection()
     elastic.es = await create_elastic_connection()
     yield
@@ -37,7 +38,6 @@ app = FastAPI(
     lifespan=lifespan
 )
 
-
 # Подключаем роутеры к серверу
 # Теги указываем для удобства навигации по документации
 app.include_router(films.router,
@@ -49,9 +49,9 @@ app.include_router(genres.router,
                    tags=['genres'])
 
 app.include_router(persons.router,
-                    prefix='/api/v1/persons',
-                    tags=['persons'])
+                   prefix='/api/v1/persons',
+                   tags=['persons'])
 
 app.include_router(search.router,
-                    prefix='/api/v1',
-                    tags=['search'])
+                   prefix='/api/v1',
+                   tags=['search'])

@@ -4,7 +4,6 @@ from state_manager.base_storage import BaseStorage
 
 
 class StateManager:
-
     state: dict[str, Any]
 
     def __init__(self, storage: BaseStorage) -> None:

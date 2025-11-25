@@ -1,5 +1,6 @@
 import pytest
 from fastapi.testclient import TestClient
+from fastapi import status
 
 
 class TestSearchEndpoints:
@@ -9,7 +10,7 @@ class TestSearchEndpoints:
         """Тест успешного универсального поиска по всем сущностям"""
         response = client.get("/api/v1/search?query=Test")
         
-        assert response.status_code == 200
+        assert response.status_code == status.HTTP_200_OK
         data = response.json()
         assert "results" in data
         assert "total" in data
@@ -26,7 +27,7 @@ class TestSearchEndpoints:
         """Тест поиска только по фильмам"""
         response = client.get("/api/v1/search?query=Test&search_type=films")
         
-        assert response.status_code == 200
+        assert response.status_code == status.HTTP_200_OK
         data = response.json()
         assert isinstance(data["results"], list)
         
@@ -38,7 +39,7 @@ class TestSearchEndpoints:
         """Тест поиска только по персонам"""
         response = client.get("/api/v1/search?query=Test&search_type=persons")
         
-        assert response.status_code == 200
+        assert response.status_code == status.HTTP_200_OK
         data = response.json()
         assert isinstance(data["results"], list)
         
@@ -50,7 +51,7 @@ class TestSearchEndpoints:
         """Тест поиска только по жанрам"""
         response = client.get("/api/v1/search?query=Test&search_type=genres")
         
-        assert response.status_code == 200
+        assert response.status_code == status.HTTP_200_OK
         data = response.json()
         assert isinstance(data["results"], list)
         
@@ -62,7 +63,7 @@ class TestSearchEndpoints:
         """Тест универсального поиска с пагинацией"""
         response = client.get("/api/v1/search?query=Test&page_size=1&page_number=0")
         
-        assert response.status_code == 200
+        assert response.status_code == status.HTTP_200_OK
         data = response.json()
         assert isinstance(data["results"], list)
         # Пагинация применяется к каждому типу отдельно, поэтому может быть до 3 результатов
@@ -72,7 +73,7 @@ class TestSearchEndpoints:
         """Тест универсального поиска с пустым результатом"""
         response = client.get("/api/v1/search?query=xyz123nonexistent")
         
-        assert response.status_code == 404
+        assert response.status_code == status.HTTP_404_NOT_FOUND
         assert response.json()["detail"] == "nothing found"
 
     def test_universal_search_empty_query(self, client: TestClient):
@@ -80,26 +81,26 @@ class TestSearchEndpoints:
         response = client.get("/api/v1/search?query=")
         
         # Должен вернуть 404 так как пустой запрос не найдет ничего
-        assert response.status_code == 404
+        assert response.status_code == status.HTTP_404_NOT_FOUND
 
     def test_universal_search_invalid_page_size(self, client: TestClient):
         """Тест универсального поиска с невалидным размером страницы"""
         response = client.get("/api/v1/search?query=test&page_size=0")
         
-        assert response.status_code == 422
+        assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
 
     def test_universal_search_invalid_page_number(self, client: TestClient):
         """Тест универсального поиска с невалидным номером страницы"""
         response = client.get("/api/v1/search?query=test&page_number=-1")
         
-        assert response.status_code == 422
+        assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
 
     def test_universal_search_invalid_search_type(self, client: TestClient):
         """Тест универсального поиска с невалидным типом поиска"""
         response = client.get("/api/v1/search?query=test&search_type=invalid")
         
         # Должен вернуть 404 так как тип поиска не поддерживается
-        assert response.status_code == 404
+        assert response.status_code == status.HTTP_404_NOT_FOUND
 
     def test_universal_search_total_count(self, client: TestClient):
         """Тест корректности подсчета общего количества результатов"""

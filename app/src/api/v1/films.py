@@ -1,11 +1,12 @@
+from http import HTTPStatus
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Path
-from http import HTTPStatus
 from pydantic import TypeAdapter
+from src.api.v1.pagination import PaginationDep
+from src.core.config import cache_service
 from src.models.film import FilmList, FilmDitail
 from src.services.film import FilmService, get_film_service
-from src.core.config import cache_service
 
 router = APIRouter()
 
@@ -13,17 +14,16 @@ router = APIRouter()
 @router.get('/search', response_model=list[FilmList])
 @cache_service.cached(
     endpoint="api_film_search",
-    params_extractor=lambda query, page_size, page_number, **kwargs: {
+    params_extractor=lambda query, pagination, **kwargs: {
         "query": query,
-        "page_size": page_size,
-        "page_number": page_number
+        "page_size": pagination.page_size,
+        "page_number": pagination.page_number
     }
 )
 async def film_search(query: Annotated[str, Query(description='Word to search movie by title')],
-                      page_size: Annotated[int, Query(description='Pagination page size', ge=1)] = 10,
-                      page_number: Annotated[int, Query(description='Pagination page number', ge=0)] = 0,
+                      pagination: PaginationDep,
                       film_service: FilmService = Depends(get_film_service)) -> list[FilmList]:
-    films = await film_service.get_search_list(query, page_number, page_size)
+    films = await film_service.get_search_list(query, pagination.page_number, pagination.page_size)
     if not films:
         raise HTTPException(status_code=HTTPStatus.NOT_FOUND,
                             detail='film not found')
@@ -49,17 +49,16 @@ async def film_details(film_id: Annotated[str, Path(description='Movie ID to dis
 @router.get('/', response_model=list[FilmList])
 @cache_service.cached(
     endpoint="api_film_list",
-    params_extractor=lambda sort, genres, page_size, page_number, **kwargs: {
+    params_extractor=lambda pagination, sort, genres, **kwargs: {
         "sort": sort,
         "genres": genres,
-        "page_size": page_size,
-        "page_number": page_number
+        "page_size": pagination.page_size,
+        "page_number": pagination.page_number
     }
 )
-async def film_list(sort: Annotated[str, Query(description='Field for sorting')] = '-imdb_rating',
-                     genres: Annotated[str | None, Query(description='Genre ID to search')] = None,
-                    page_size: Annotated[int, Query(description='Pagination page size', ge=1)] = 10,
-                    page_number: Annotated[int, Query(description='Pagination page number', ge=0)] = 0,
+async def film_list(pagination: PaginationDep,
+                    sort: Annotated[str, Query(description='Field for sorting')] = '-imdb_rating',
+                    genres: Annotated[str | None, Query(description='Genre ID to search')] = None,
                     film_service: FilmService = Depends(get_film_service)) -> list[FilmList]:
     if sort.startswith('-'):
         sort_order = 'desc'
@@ -67,8 +66,8 @@ async def film_list(sort: Annotated[str, Query(description='Field for sorting')]
     else:
         sort_order = 'asc'
     films = await film_service.get_sort_list_by_param(sort, sort_order,
-                                                      page_number,
-                                                      page_size, genres or "")
+                                                      pagination.page_number,
+                                                      pagination.page_size, genres or "")
     if not films:
         raise HTTPException(status_code=HTTPStatus.NOT_FOUND,
                             detail='film not found')

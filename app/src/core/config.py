@@ -1,14 +1,13 @@
 import os
 from logging import config as logging_config
 
-from pydantic_settings import BaseSettings, SettingsConfigDict
 from pydantic import Field
-
+from pydantic_settings import BaseSettings, SettingsConfigDict
 from redis.asyncio import Redis
-from src.core.logger import LOGGING
 from src.core.cache import CacheService
-from src.core.redis_cache_storage import RedisCacheStorage
 from src.core.default_cache_key_generator import DefaultCacheKeyGenerator
+from src.core.logger import LOGGING
+from src.core.redis_cache_storage import RedisCacheStorage
 
 # Применяем настройки логирования
 logging_config.dictConfig(LOGGING)
@@ -16,7 +15,7 @@ logging_config.dictConfig(LOGGING)
 
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(
-        env_file=['.env', '.env.test'], 
+        env_file=['.env', '.env.test'],
         env_file_encoding='utf-8',
         extra='ignore'
     )

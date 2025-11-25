@@ -1,11 +1,12 @@
-import pytest
-from fastapi.testclient import TestClient
-from uuid import uuid4
 import asyncio
-from elasticsearch import AsyncElasticsearch
-
-import sys
 import os
+import sys
+from uuid import uuid4
+
+import pytest
+from elasticsearch import AsyncElasticsearch
+from fastapi.testclient import TestClient
+
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from main import app
@@ -19,7 +20,7 @@ def client():
     os.environ.setdefault('ELASTIC_PORT', '9200')
     os.environ.setdefault('REDIS_HOST', 'test_redis')
     os.environ.setdefault('REDIS_PORT', '6379')
-    
+
     with TestClient(app) as client:
         yield client
 
@@ -34,9 +35,10 @@ def test_settings():
 @pytest.fixture(scope="session")
 def setup_test_data(test_settings):
     """Настройка Elasticsearch и создание тестовых данных"""
+
     async def setup():
         es = AsyncElasticsearch(hosts=[f"http://{test_settings.elastic_host}:{test_settings.elastic_port}"])
-        
+
         # Ждем пока Elasticsearch будет готов
         max_retries = 30
         for i in range(max_retries):
@@ -47,33 +49,33 @@ def setup_test_data(test_settings):
                 if i == max_retries - 1:
                     raise Exception(f"Elasticsearch is not available after {max_retries} attempts: {e}")
                 await asyncio.sleep(2)
-        
+
         # Очистка индексов перед тестами
         indices_to_clean = ["movies", "persons", "genres"]
-        
+
         for index_name in indices_to_clean:
             if await es.indices.exists(index=index_name):
                 await es.indices.delete(index=index_name)
-        
+
         # Создаем индексы с тестовыми данными
         await es.indices.create(index="movies")
         await es.indices.create(index="persons")
         await es.indices.create(index="genres")
-        
+
         # Добавляем тестовый фильм
         film_uuid = str(uuid4())
         genre_uuid = str(uuid4())
         director_uuid = str(uuid4())
         actor_uuid = str(uuid4())
         writer_uuid = str(uuid4())
-        
+
         # Добавляем тестовый жанр
         test_genre = {
             "id": genre_uuid,
             "name": "Test Genre",
             "description": "A test genre for functional testing"
         }
-        
+
         test_film = {
             "id": film_uuid,
             "title": "Test Film",
@@ -95,7 +97,7 @@ def setup_test_data(test_settings):
             "directors_ids": [director_uuid],
             "writers_ids": [writer_uuid]
         }
-        
+
         # Добавляем второй фильм для тестов списка и поиска
         film_uuid2 = str(uuid4())
         test_film2 = {
@@ -119,7 +121,7 @@ def setup_test_data(test_settings):
             "directors_ids": [director_uuid],
             "writers_ids": [writer_uuid]
         }
-        
+
         # Добавляем тестовые персоны
         test_person = {
             "id": actor_uuid,
@@ -129,7 +131,7 @@ def setup_test_data(test_settings):
                 {"id": film_uuid2, "title": "Another Test Movie", "imdb_rating": 7.2, "roles": "actor"}
             ]
         }
-        
+
         test_director = {
             "id": director_uuid,
             "full_name": "Test Director",
@@ -138,7 +140,7 @@ def setup_test_data(test_settings):
                 {"id": film_uuid2, "title": "Another Test Movie", "imdb_rating": 7.2, "roles": "director"}
             ]
         }
-        
+
         test_writer = {
             "id": writer_uuid,
             "full_name": "Test Writer",
@@ -147,7 +149,7 @@ def setup_test_data(test_settings):
                 {"id": film_uuid2, "title": "Another Test Movie", "imdb_rating": 7.2, "roles": "writer"}
             ]
         }
-        
+
         # Индексируем тестовые данные
         await es.index(index="movies", id=film_uuid, body=test_film)
         await es.index(index="movies", id=film_uuid2, body=test_film2)
@@ -155,29 +157,29 @@ def setup_test_data(test_settings):
         await es.index(index="persons", id=director_uuid, body=test_director)
         await es.index(index="persons", id=writer_uuid, body=test_writer)
         await es.index(index="genres", id=genre_uuid, body=test_genre)
-        
+
         # Принудительное обновление индексов
         await es.indices.refresh(index="movies")
         await es.indices.refresh(index="persons")
         await es.indices.refresh(index="genres")
-        
+
         # Проверяем, что данные успешно проиндексированы
         try:
             result = await es.get(index="movies", id=film_uuid)
             if not result['found']:
                 raise Exception(f"Failed to index test film with UUID: {film_uuid}")
-            
+
             person_result = await es.get(index="persons", id=actor_uuid)
             if not person_result['found']:
                 raise Exception(f"Failed to index test person with UUID: {actor_uuid}")
         except Exception as e:
             raise Exception(f"Test data verification failed: {e}")
-        
+
         # Небольшая задержка для стабильности
         await asyncio.sleep(1)
-        
+
         await es.close()
-        
+
         return {
             "film_uuid": film_uuid,
             "person_uuid": actor_uuid,
@@ -185,16 +187,17 @@ def setup_test_data(test_settings):
             "writer_uuid": writer_uuid,
             "genre_uuid": genre_uuid
         }
-    
+
     return asyncio.run(setup())
 
 
 @pytest.fixture(scope="session", autouse=True)
 def cleanup_test_data(test_settings):
     """Очистка тестовых данных после всех тестов"""
+
     async def cleanup():
         es = AsyncElasticsearch(hosts=[f"http://{test_settings.elastic_host}:{test_settings.elastic_port}"])
-        
+
         try:
             # Удаляем тестовые индексы
             indices_to_clean = ["movies", "persons", "genres"]
@@ -206,8 +209,8 @@ def cleanup_test_data(test_settings):
             pass
         finally:
             await es.close()
-    
+
     yield
-    
+
     # Очистка после всех тестов
     asyncio.run(cleanup())

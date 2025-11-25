@@ -1,8 +1,8 @@
 from typing import List, Optional
 
+from src.models.person import PersonSearch, PersonDetail, FilmByPerson
 from src.services.base import SearchableService
 from src.services.interfaces import PersonRepositoryInterface
-from src.models.person import PersonSearch, PersonDetail, FilmByPerson
 
 
 class PersonService(SearchableService):
@@ -28,7 +28,7 @@ def get_person_service() -> PersonService:
     """Factory function for PersonService dependency injection"""
     from src.repositories.person_repository import PersonRepository
     from src.db.elastic import get_elastic_client
-    
+
     # This is a simplified version - in real implementation you'd use proper DI
     elastic_client = get_elastic_client()
     person_repository = PersonRepository(elastic_client)

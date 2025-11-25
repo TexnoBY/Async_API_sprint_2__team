@@ -53,12 +53,12 @@ class Genre(Document):
             },
         }
 
-def get_genres_index_data(
-    database_settings: dict,
-    last_sync_state: datetime,
-    batch_size: int = 100
-) -> Generator[list[Genre], None, None]:
 
+def get_genres_index_data(
+        database_settings: dict,
+        last_sync_state: datetime,
+        batch_size: int = 100
+) -> Generator[list[Genre], None, None]:
     dsn = make_conninfo(**database_settings)
 
     with psycopg.connect(dsn, row_factory=class_row(Genre)) as conn, ServerCursor(conn, 'fetcher') as cursor:

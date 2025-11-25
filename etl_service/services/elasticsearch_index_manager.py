@@ -1,7 +1,7 @@
 from typing import Type
+
 from elasticsearch import Elasticsearch
 from elasticsearch_dsl import Document
-
 from interfaces.index_manager_interface import IIndexManager
 from logger import logger
 
@@ -24,7 +24,7 @@ class ElasticsearchIndexManager(IIndexManager):
             document_class: Класс документа Elasticsearch-dsl
         """
         index_name = document_class.Index.name
-        
+
         try:
             if self.es.indices.exists(index=index_name):
                 self.logger.info(f"Удаляем существующий индекс: {index_name}")
@@ -35,12 +35,12 @@ class ElasticsearchIndexManager(IIndexManager):
 
             settings = self.es.indices.get_settings(index=index_name)
             analysis = settings[index_name]['settings']['index'].get('analysis', {})
-            
+
             if 'analyzer' in analysis and 'ru_en' in analysis['analyzer']:
                 self.logger.info(f"✅ Анализатор ru_en успешно создан в индексе {index_name}")
             else:
                 self.logger.warning(f"⚠️ Анализатор ru_en не найден в индексе {index_name}")
-                
+
         except Exception as e:
             self.logger.error(f"❌ Ошибка при пересоздании индекса {index_name}: {e}")
             raise
@@ -53,7 +53,7 @@ class ElasticsearchIndexManager(IIndexManager):
             document_class: Класс документа Elasticsearch-dsl
         """
         index_name = document_class.Index.name
-        
+
         try:
             if not self.es.indices.exists(index=index_name):
                 self.logger.info(f"Индекс {index_name} не существует, создаем...")
@@ -65,7 +65,7 @@ class ElasticsearchIndexManager(IIndexManager):
                 self.recreate_index_with_analyzers(document_class)
             else:
                 self.logger.info(f"✅ Индекс {index_name} существует с правильными настройками")
-                
+
         except Exception as e:
             self.logger.error(f"❌ Ошибка при проверке индекса {index_name}: {e}")
             raise
@@ -81,7 +81,7 @@ class ElasticsearchIndexManager(IIndexManager):
             True если индекс нужно пересоздать, иначе False
         """
         index_name = document_class.Index.name
-        
+
         try:
             current_settings = self._get_current_index_settings(index_name)
 
@@ -95,15 +95,15 @@ class ElasticsearchIndexManager(IIndexManager):
 
             current_ru_en = current_analysis['analyzer']['ru_en']
             expected_ru_en = expected_analysis['analyzer']['ru_en']
-            
+
             if current_ru_en != expected_ru_en:
                 self.logger.info(f"Индекс {index_name}: настройки анализатора ru_en отличаются")
                 self.logger.debug(f"Текущие: {current_ru_en}")
                 self.logger.debug(f"Ожидаемые: {expected_ru_en}")
                 return True
-            
+
             return False
-            
+
         except Exception as e:
             self.logger.warning(f"Ошибка при проверке настроек индекса {index_name}: {e}")
             # В случае ошибки лучше пересоздать индекс для надежности

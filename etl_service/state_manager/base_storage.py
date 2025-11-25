@@ -10,4 +10,3 @@ class BaseStorage(abc.ABC):
     @abc.abstractmethod
     def retrieve_state(self) -> dict[str, Any]:
         ...
-

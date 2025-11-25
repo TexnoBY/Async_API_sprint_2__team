@@ -15,12 +15,14 @@ from psycopg import ServerCursor
 from psycopg.conninfo import make_conninfo
 from psycopg.rows import class_row
 
+
 class FilmRole(InnerDoc):
     uuid = Keyword()
     roles = Keyword(multi=True)
 
     class Meta:
         dynamic = MetaField('strict')
+
 
 class Person(Document):
     id = Keyword()
@@ -64,9 +66,8 @@ class Person(Document):
 
 
 def get_person_index_data(
-    database_settings: dict, last_sync_state: datetime, batch_size: int = 100
+        database_settings: dict, last_sync_state: datetime, batch_size: int = 100
 ) -> Generator[list[Person], None, None]:
-
     dsn = make_conninfo(**database_settings)
 
     with psycopg.connect(dsn, row_factory=class_row(Person)) as conn, ServerCursor(conn, 'fetcher') as cursor:
@@ -89,7 +90,6 @@ def get_person_index_data(
             WHERE p.modified >= %s
             GROUP BY p.id, p.full_name, p.modified
         """
-
 
         cursor.execute(query, (last_sync_state,))
         while results := cursor.fetchmany(size=batch_size):

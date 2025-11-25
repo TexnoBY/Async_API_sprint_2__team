@@ -3,8 +3,6 @@ services:
     build:
       context: .
       dockerfile: docker/api/Dockerfile
-    ports:
-      - "8000:8000"
     depends_on:
       elastic_search:
         condition: service_healthy
@@ -28,6 +26,7 @@ services:
       - "80:80"
     depends_on:
       - admin
+      - api
 
   admin:
     build:
@@ -35,8 +34,6 @@ services:
       dockerfile: docker/admin/Dockerfile
     container_name: admin
     restart: always
-    ports:
-      - "8001:8001"
     volumes:
       - ./movies_admin:/code
       - static_volume:/code/static
@@ -60,8 +57,6 @@ services:
 
   elastic_search:
     image: elasticsearch:8.6.2
-    ports:
-      - "9200:9200"
     expose:
       - "9200"
     healthcheck:
@@ -75,8 +70,6 @@ services:
 
   theatre-db:
     image: postgres:15
-    ports:
-      - "5432:5432"
     env_file:
       - .env
     volumes:
@@ -93,8 +86,6 @@ services:
     hostname: redis
     env_file:
       - .env
-    ports:
-      - "6379:6379"
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 5s

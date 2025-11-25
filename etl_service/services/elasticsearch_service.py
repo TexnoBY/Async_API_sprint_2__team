@@ -1,9 +1,9 @@
 from typing import Generator, Any
+
 from elasticsearch import Elasticsearch
 from elasticsearch.helpers import bulk
-
-from interfaces.elasticsearch_interface import IElasticsearchService
 from helpers.backoff_func_wrapper import backoff
+from interfaces.elasticsearch_interface import IElasticsearchService
 from logger import logger
 
 

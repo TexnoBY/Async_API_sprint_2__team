@@ -15,10 +15,10 @@ class CacheOptions:
 
 class CacheService:
     def __init__(
-        self,
-        storage: CacheStorage,
-        key_generator: CacheKeyGenerator,
-        serializer: CacheSerializer = CacheSerializer()
+            self,
+            storage: CacheStorage,
+            key_generator: CacheKeyGenerator,
+            serializer: CacheSerializer = CacheSerializer()
     ):
         self.storage = storage
         self.key_generator = key_generator
